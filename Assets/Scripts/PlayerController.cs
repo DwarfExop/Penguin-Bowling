@@ -137,10 +137,3 @@ public class PlayerController : MonoBehaviour
         }
     }
 }
-
-public class BallMovement
-{
-    public GameObject Ball { get; set; }
-    public Vector3 Target { get; set; }
-    public int Owner { get; set; }
-}
