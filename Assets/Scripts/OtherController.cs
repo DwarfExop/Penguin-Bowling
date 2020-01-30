@@ -4,7 +4,7 @@ using UnityEngine.UI;
 public class OtherController : MonoBehaviour
 {
     public GameObject health;
-    private int healthPoints = 99;
+    private int healthPoints = 100;
 
     private void OnCollisionEnter(Collision collision)
     {

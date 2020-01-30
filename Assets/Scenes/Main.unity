@@ -705,7 +705,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Health: 99'
+  m_Text: 'Health: 100'
 --- !u!222 &1058653417
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1108,7 +1108,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Health: 99'
+  m_Text: 'Health: 100'
 --- !u!222 &2145228220
 CanvasRenderer:
   m_ObjectHideFlags: 0

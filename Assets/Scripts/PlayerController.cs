@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 youTargetPosition;
 
     private Client client;
-    private int healthPoints = 99;
+    private int healthPoints = 100;
     private MovementData otherMovementData;
 
     public GameObject other;
