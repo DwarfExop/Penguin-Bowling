@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,10 +29,21 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        CheckWin();
         GetKeyInputs();
         GetMessageData();
         UpdateBalls();
         MovePlayers();
+
+    }
+
+    private void CheckWin()
+    {
+        if (GameObject.FindGameObjectWithTag("Other") == null)
+        {
+            Debug.Log("You won!");
+            Application.Quit();
+        }
     }
 
     private void GetKeyInputs()
@@ -150,6 +164,12 @@ public class PlayerController : MonoBehaviour
             healthPoints -= 10;
             health.GetComponent<Text>().text = $"Health: {healthPoints}";
             Destroy(collision.gameObject);
+            if (healthPoints == 0)
+            {
+                Destroy(gameObject);
+                Debug.Log("You Lost!");
+                Application.Quit();
+            }
         }
     }
 }

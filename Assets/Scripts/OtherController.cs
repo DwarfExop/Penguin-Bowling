@@ -15,6 +15,10 @@ public class OtherController : MonoBehaviour
             healthPoints -= 10;
             health.GetComponent<Text>().text = $"Health: {healthPoints}";
             Destroy(collision.gameObject);
+            if (healthPoints == 0)
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }

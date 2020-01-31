@@ -72,8 +72,7 @@ public class Client
     {
         if (socketReady)
         {
-            SendBall sendBall = new SendBall(targetPosition);
-            var temp = JsonUtility.ToJson(sendBall);
+            BallMovement sendBall = new BallMovement(targetPosition);
             Send(JsonUtility.ToJson(sendBall));
         }
     }
@@ -91,7 +90,7 @@ public class Client
         {
             return JsonUtility.FromJson<PlayerMovement>(data);
         } 
-        else if (data.Contains("targetPosition"))
+        else if (data.Contains("ball"))
         {
             return JsonUtility.FromJson<BallMovement>(data);
         }
