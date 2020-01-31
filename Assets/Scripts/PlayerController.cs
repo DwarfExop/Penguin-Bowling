@@ -1,5 +1,4 @@
-﻿using Assets.Enums;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,7 +9,7 @@ public class PlayerController : MonoBehaviour
 
     private Client client;
     private int healthPoints = 100;
-    private MovementData otherMovementData;
+    private PlayerMovement otherMovementData;
 
     public GameObject other;
     public GameObject health;
@@ -27,61 +26,39 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        GetKeyInputs();
+        GetMessageData();
+        UpdateBalls();
+        MovePlayers();
+    }
+
+    private void GetKeyInputs()
+    {
         if (Input.GetMouseButtonDown(0))
         {
             SetTargetPosition();
         }
-
-        var (data, type) = client.CheckMessages();
-
-        if (data != null)
-        {
-            if (type.Value == MovementType.Player)
-            {
-                otherMovementData = data;
-            }
-            else if (type.Value == MovementType.Ball)
-            {
-                CreateBall(other, data.targetPosition);
-            }
-        }
-
         if (Input.GetKeyDown("space"))
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, 1000))
-            {
-                Vector3 normalized = (hit.point - transform.position).normalized;
-                var target = transform.position + normalized * 30;
-                CreateBall(gameObject, target);
-                client.SendBall(other, target, default, gameObject.transform.position);
-            }
-        }
-
-        MoveBall();
-
-        if (youTargetPosition != default && youTargetPosition != transform.position)
-        {
-            MovePlayer(gameObject, youPlayerRot, youTargetPosition);
-        }
-
-        if (otherMovementData != default && otherMovementData.targetPosition != other.transform.position)
-        {
-            MovePlayer(other, otherMovementData.playerRot, otherMovementData.targetPosition);
+            FireBall();
         }
     }
 
-    private void CreateBall(GameObject gameObject, Vector3 target)
+    private void GetMessageData()
     {
-        var newBall = Instantiate(ball);
-        newBall.SetActive(true);
+        object data = client.CheckMessages();
 
-        var ballComponent = newBall.GetComponent<Ball>();
-        ballComponent.OwnerId = gameObject.GetInstanceID();
-
-        newBall.transform.position = gameObject.transform.position;
-        balls.Add(new BallMovement { Owner = gameObject.GetInstanceID(), Ball = newBall, Target = target });
+        if (data != null)
+        {
+            if (data.GetType() == typeof(PlayerMovement))
+            {
+                otherMovementData = (PlayerMovement)data;
+            }
+            else if (data.GetType() == typeof(BallMovement))
+            {
+                CreateBall(other, (BallMovement)data);
+            }
+        }
     }
 
     private void SetTargetPosition()
@@ -93,8 +70,56 @@ public class PlayerController : MonoBehaviour
             youTargetPosition = hit.point;
             youPlayerRot = Quaternion.LookRotation(Vector3.forward, (youTargetPosition - transform.position) * -1);
 
-            client.SendMovement(other, youTargetPosition, youPlayerRot, transform.position);
+            client.SendMovement(youTargetPosition, youPlayerRot, transform.position);
         }
+    }
+
+    private void FireBall()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000))
+        {
+            Vector3 normalized = (hit.point - transform.position).normalized;
+            var target = transform.position + normalized * 30;
+            CreateBall(gameObject, new BallMovement(target));
+            client.SendBall(target);
+        }
+    }
+
+    private void CreateBall(GameObject gameObject, BallMovement ballMovement)
+    {
+        var newBall = Instantiate(ball);
+        newBall.SetActive(true);
+
+        var ballComponent = newBall.GetComponent<Ball>();
+        ballComponent.OwnerId = gameObject.GetInstanceID();
+
+        newBall.transform.position = gameObject.transform.position;
+        ballMovement.ball = newBall;
+        balls.Add(ballMovement);
+    }
+    private void UpdateBalls()
+    {
+        var toRemoves = new List<BallMovement>();
+        foreach (var movement in balls)
+        {
+            GameObject ball = movement.ball;
+            if (ball == null)
+            {
+                toRemoves.Add(movement);
+                continue;
+            }
+
+            ball.transform.position = Vector3.MoveTowards(ball.transform.position, movement.targetPosition, ballSpeed * Time.deltaTime);
+
+            if (ball.transform.position == movement.targetPosition)
+            {
+                Destroy(ball.gameObject);
+                toRemoves.Add(movement);
+            }
+        }
+        toRemoves.ForEach(t => balls.Remove(t));
     }
 
     private void MovePlayer(GameObject player, Quaternion rotation, Vector3 targetPosition)
@@ -103,26 +128,17 @@ public class PlayerController : MonoBehaviour
         player.transform.position = Vector3.MoveTowards(player.transform.position, targetPosition, speed * Time.deltaTime);
     }
 
-    private void MoveBall()
+    private void MovePlayers()
     {
-        var toRemoves = new List<BallMovement>();
-        foreach (var movement in balls)
+        if (youTargetPosition != default && youTargetPosition != transform.position)
         {
-            if (movement.Ball == null)
-            {
-                toRemoves.Add(movement);
-                continue;
-            }
-
-            movement.Ball.transform.position = Vector3.MoveTowards(movement.Ball.transform.position, movement.Target, ballSpeed * Time.deltaTime);
-
-            if (movement.Ball.transform.position == movement.Target)
-            {
-                Destroy(movement.Ball.gameObject);
-                toRemoves.Add(movement);
-            }
+            MovePlayer(gameObject, youPlayerRot, youTargetPosition);
         }
-        toRemoves.ForEach(t => balls.Remove(t));
+
+        if (otherMovementData != default && otherMovementData.targetPosition != other.transform.position)
+        {
+            MovePlayer(other, otherMovementData.playerRot, otherMovementData.targetPosition);
+        }
     }
 
     public void OnCollisionEnter(Collision collision)

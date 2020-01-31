@@ -1,5 +1,4 @@
-﻿using Assets.Enums;
-using System;
+﻿using System;
 using System.IO;
 using System.Net.Sockets;
 using UnityEngine;
@@ -11,7 +10,6 @@ public class Client
     private StreamWriter writer;
     private TcpClient socket;
     private NetworkStream stream;
-    private Vector3 lastPosition;
 
     private static Client client;
 
@@ -27,7 +25,6 @@ public class Client
         {
             return;
         }
-
         try
         {
             string host = "127.0.0.1";
@@ -45,7 +42,7 @@ public class Client
         }
     }
 
-    public (MovementData data, MovementType? type) CheckMessages()
+    public object CheckMessages()
     {
         if (socketReady)
         {
@@ -58,58 +55,47 @@ public class Client
                 }
             }
         }
-        return (null, null);
+        return null;
     }
 
-    public void SendMovement(GameObject other, Vector3 targetPosition, Quaternion playerRot, Vector3 currentPosition)
+
+    public void SendMovement(Vector3 targetPosition, Quaternion playerRot, Vector3 currentPosition)
     {
         if (socketReady)
         {
-            var movementData = new MovementData(targetPosition, playerRot, currentPosition);
-            Send(MovementType.Player, JsonUtility.ToJson(movementData));
+            PlayerMovement movementData = new PlayerMovement(targetPosition, playerRot, currentPosition);
+            Send(JsonUtility.ToJson(movementData));
         }
     }
 
-    public void SendBall(GameObject other, Vector3 targetPosition, Quaternion playerRot, Vector3 currentPosition)
+    public void SendBall(Vector3 targetPosition)
     {
         if (socketReady)
         {
-            var movementData = new MovementData(targetPosition, playerRot, currentPosition);
-            Send(MovementType.Ball, JsonUtility.ToJson(movementData));
+            SendBall sendBall = new SendBall(targetPosition);
+            var temp = JsonUtility.ToJson(sendBall);
+            Send(JsonUtility.ToJson(sendBall));
         }
     }
 
-    private void Send(MovementType action, string data)
+    private void Send(string data)
     {
-        writer.WriteLine(action.ToString() + data);
+        writer.WriteLine(data);
         writer.Flush();
     }
 
-    private (MovementData data, MovementType? type) OnIncomingData(string data)
+    private object OnIncomingData(string data)
     {
         Debug.Log("Other player moved.");
-        if (data.StartsWith(MovementType.Player.ToString()))
+        if (data.Contains("playerRot"))
         {
-            return (JsonUtility.FromJson<MovementData>(data.Replace(MovementType.Player.ToString(), "")), MovementType.Player);
-        }
-        else if (data.StartsWith(MovementType.Ball.ToString()))
+            return JsonUtility.FromJson<PlayerMovement>(data);
+        } 
+        else if (data.Contains("targetPosition"))
         {
-            return (JsonUtility.FromJson<MovementData>(data.Replace(MovementType.Ball.ToString(), "")), MovementType.Ball);
+            return JsonUtility.FromJson<BallMovement>(data);
         }
-        else return (null, null);
+        else return null;
     }
 }
 
-public class MovementData
-{
-    public Vector3 targetPosition;
-    public Quaternion playerRot;
-    public Vector3 currentPosition;
-
-    public MovementData(Vector3 targetPosition, Quaternion playerRot, Vector3 currentPosition)
-    {
-        this.targetPosition = targetPosition;
-        this.playerRot = playerRot;
-        this.currentPosition = currentPosition;
-    }
-}
